@@ -13,7 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import base64
 import json
 import os
 import subprocess
@@ -39,16 +39,34 @@ def apply_env_remapping():
         print(f"remap_env: set {dst_key} to the value of {src_key}")
 
 
+def get_helper(repo):
+    if 'gcr.io' in repo or 'pkg.dev' in repo:
+        return 'gcr'
+    elif '.dkr.ecr.' in repo:
+        return 'ecr-login'
+    else:
+        sys.exit('unable to determine helper for: {}'.format(repo))
+
+
+def get_auth(repo):
+    helper = f"docker-credential-{get_helper(repo)}"
+    result = subprocess.run([helper, "get"],
+                            input=f"{repo}\n".encode('utf-8'),
+                            capture_output=True)
+    if result.returncode != 0:
+        sys.exit(f"failed to get credentials for {repo}\nstdout: {result.stdout}\nstderr: {result.stderr}")
+    auth = json.loads(result.stdout)
+    s = f"{auth['Username']}:{auth['Secret']}"
+    encoded = base64.b64encode(s.encode('utf-8'))
+    return encoded.decode('utf-8')
+
+
 def setup_docker(*repos):
     Path('/root/.docker').mkdir(0o700, parents=True, exist_ok=True)
-    cfg = {'credHelpers': {}}
+    cfg = {'auths': {}}
     for repo in repos:
-        if 'gcr.io' in repo or 'pkg.dev' in repo:
-            cfg['credHelpers'][repo] = 'gcr'
-        elif '.dkr.ecr.' in repo:
-            cfg['credHelpers'][repo] = 'ecr-login'
-        else:
-            sys.exit('unable to determine helper for: {}'.format(repo))
+        if repo not in cfg['auths']:
+            cfg['auths'][repo] = {'auth': get_auth(repo)}
     Path('/root/.docker/config.json').write_text(json.dumps(cfg))
     os.environ['HOME'] = '/root'
 
@@ -124,10 +142,10 @@ if __name__ == '__main__':
         sys.exit('usage: src dest [dest...]')
 
     apply_env_remapping()
-    setup_docker(*[image.split('/')[0] for image in sys.argv[1:]])
 
     tunnel = start_tunnel()
 
+    setup_docker(*[image.split('/')[0] for image in sys.argv[1:]])
     copy_images(*sys.argv[1:])
 
     if tunnel:

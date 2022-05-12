@@ -30,8 +30,8 @@ https://github.com/GoogleCloudPlatform/docker-credential-gcr/releases/download/v
 && rm docker-credential-gcr.tar.gz
 
 FROM download as download-regctl
-ARG REGCTL_VERSION=0.4.2
-ARG REGCTL_SHA256=bc7407180999acbd8c724237403802394f899714fc9fd7678d0e54072140ea5c
+ARG REGCTL_VERSION=0.3.0
+ARG REGCTL_SHA256=e619eafe9fd32181d76980d70be0f5f5dd84aef9cd87bf4d5db70089b5e9803f
 RUN wget -O regctl \
 https://github.com/regclient/regclient/releases/download/v${REGCTL_VERSION}/regctl-linux-amd64 \
 && echo "$REGCTL_SHA256  regctl" | sha256sum --check --quiet --strict \
