@@ -22,6 +22,7 @@ import time
 from pathlib import Path
 
 HTTP_PROXY = 'http://127.0.0.1:8080'
+MAX_ATTEMPTS = 10
 REMAP_ENV_PREFIX = 'REMAP_ENV_'
 SSH_DIR = '/root/.ssh'
 SSH_ID = SSH_DIR + '/id'
@@ -98,12 +99,24 @@ def start_tunnel():
     sys.exit('pproxy: failed to start')
 
 
-def copy_images(src_image, *dest_images):
-    for dest in dest_images:
-        args = ['/usr/local/bin/regctl', 'image', 'copy', '-v', 'debug', src_image, dest]
+def copy_image(src_image, dest_image, max_attempts):
+    attempt = 0
+    while attempt < max_attempts:
+        args = ['/usr/local/bin/regctl', 'image', 'copy', '-v', 'debug', src_image, dest_image]
         print(f"regctl: starting {' '.join(args)}")
-        subprocess.run(args, stdout=sys.stdout, stderr=sys.stderr).check_returncode()
-        print('regctl: completed')
+        result = subprocess.run(args, stdout=sys.stdout, stderr=sys.stderr)
+        if result.returncode == 0:
+            print('regctl: completed')
+            return True
+        print(f"regctl: failed with return code {result.returncode}")
+        attempt += 1
+    sys.exit("regctl: giving up after {MAX_ATTEMPTS}")
+
+
+def copy_images(src_image, *dest_images):
+    for dest_image in dest_images:
+        # copy_image will crash us out if MAX_ATTEMPTS is exceeded
+        copy_image(src_image, dest_image, MAX_ATTEMPTS)
 
 
 if __name__ == '__main__':
