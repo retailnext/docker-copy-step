@@ -49,4 +49,4 @@ COPY --from=build-venv /venv /venv
 
 WORKDIR /app
 COPY copy-image.py /app/copy-image.py
-ENTRYPOINT ["/venv/bin/python3", "copy-image.py"]
+ENTRYPOINT ["/venv/bin/python3", "/app/copy-image.py"]
