@@ -1,3 +1,13 @@
+# ⚠️ Archived
+
+We no longer use this.
+
+We instead run pproxy in a separate container using the image built by
+[retailnext/pproxy](https://github.com/retailnext/pproxy), then just use
+upstream [regctl](https://github.com/regclient/regclient) docker images as
+a discrete Cloud Build step with the environment variables set to direct
+its traffic towards the pproxy container.
+
 # docker-copy-step
 
 This Google Cloud Build step image uses
